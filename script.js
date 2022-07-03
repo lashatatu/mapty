@@ -27,7 +27,7 @@ const inputElevation = document.querySelector('.form__input--elevation');
 class Workout {
   date = new Date();
   id = (Date.now() + '').slice(-10);
-  clicks=0
+  clicks = 0;
 
   constructor (coords, distance, duration) {
     this.coords = coords;
@@ -53,7 +53,8 @@ class Workout {
 
     this.description = `${this.type[0].toUpperCase()}${this.type.slice(1)} on ${months[this.date.getMonth()]} ${this.date.getDate()}`;
   }
-  click(){
+
+  click () {
     this.clicks++;
   }
 }
@@ -104,6 +105,9 @@ class App {
 
   constructor () {
     this._getPosition();
+
+    this._getLocalStorage();
+
     form.addEventListener('submit', this._newWorkout.bind(this));
     inputType.addEventListener('change', this._toggleElevationField);
     containerWorkouts.addEventListener('click', this._moveToPopup.bind(this));
@@ -121,7 +125,6 @@ class App {
   _loadMap (position) {
     const { latitude } = position.coords;
     const { longitude } = position.coords;
-    console.log(`https://www.google.com/maps/@${latitude},${longitude}`);
     const coords = [latitude, longitude];
     this.#map = L.map('map')
       .setView(coords, this.#mapZoomLevel);
@@ -132,6 +135,9 @@ class App {
       .addTo(this.#map);
 
     this.#map.on('click', this._showForm.bind(this));
+    this.#workouts.forEach(work => {
+      this._renderWorkoutMarker(work);
+    });
   }
 
   _showForm (mapE) {
@@ -204,6 +210,8 @@ class App {
 
     this._hideForm();
 
+    this._setLocalStorage();
+
   }
 
   _renderWorkoutMarker (workout) {
@@ -225,7 +233,7 @@ class App {
         <li class='workout workout--${workout.type}' data-id='${workout.id}'>
           <h2 class='workout__title'>${workout.description}</h2>
           <div class='workout__details'>
-            <span class='workout__icon'>${workout.type === 'running' ? '🚴' : '🏃'}</span>
+            <span class='workout__icon'>${workout.type === 'running' ? '🏃' : '🚴'}</span>
             <span class='workout__value'>${workout.distance}</span>
             <span class='workout__unit'>km</span>
           </div>
@@ -274,14 +282,12 @@ class App {
 
   _moveToPopup (e) {
     const workoutEl = e.target.closest('.workout');
-    console.log(workoutEl);
 
     if ( !workoutEl ) {
       return;
     }
 
     const workout = this.#workouts.find(work => work.id === workoutEl.dataset.id);
-    console.log(workout);
 
     this.#map.setView(workout.coords, this.#mapZoomLevel, {
       animate: true,
@@ -290,9 +296,29 @@ class App {
       }
     });
 
-    workout.click()
+    // workout.click();
   }
 
+  _setLocalStorage () {
+    localStorage.setItem('workouts', JSON.stringify(this.#workouts));
+  }
+
+  _getLocalStorage () {
+    const data = JSON.parse(localStorage.getItem('workouts'));
+    if ( !data ) {
+      return;
+    }
+
+    this.#workouts = data;
+    this.#workouts.forEach(work => {
+      this._renderWorkout(work);
+    });
+  }
+
+  reset(){
+    localStorage.removeItem('workouts')
+    location.reload()
+  }
 }
 
 const app = new App();
